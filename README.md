@@ -27,3 +27,9 @@ Soloist application professional development repository.
 3. git tag vx.x.x
 4. git push origin main vx.x.x
 5. (optional) git reset --hard vx.x.x
+
+### Feature Development Instructions:
+1. git checkout -b new-branch
+2. git add .
+3. git commit -m "Updated Feature version to x.x.x"
+4. push origin main
