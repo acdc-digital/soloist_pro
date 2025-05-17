@@ -16,13 +16,12 @@
 Soloist application professional development repository.
 
 ### Start-up Commands
-# Run these commands in separate terminals in this order:
 1. pnpm --filter soloist_pro-convex dev
 2. pnpm --filter soloist_pro-renderer dev
 3. pnpm --filter soloist_pro-electron dev
 4. pnpm --filter soloist_pro-website dev
 
-### Git Update Version Main Commands (steps)
+### Git Update Version Commands
 1. git add .
 2. git commit -m "Updated version to x.x.x"
 3. git tag vx.x.x
