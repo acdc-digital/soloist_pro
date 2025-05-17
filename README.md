@@ -21,3 +21,10 @@ Soloist application professional development repository.
 2. pnpm --filter soloist_pro-renderer dev
 3. pnpm --filter soloist_pro-electron dev
 4. pnpm --filter soloist_pro-website dev
+
+### Git Update Version Main Commands (steps)
+1. git add .
+2. git commit -m "Updated version to x.x.x"
+3. git tag vx.x.x
+4. git push origin main vx.x.x
+5. (optional) git reset --hard vx.x.x
