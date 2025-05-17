@@ -13,6 +13,7 @@
 </table>
 
 # soloist_pro
+Github Project: https://github.com/users/acdc-digital/projects/10   
 Soloist application professional development repository.
 
 ### Start-up Commands
