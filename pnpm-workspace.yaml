@@ -1,0 +1,7 @@
+packages:
+  - ./convex
+  - ./electron
+  - ./renderer
+  - ./website
+ignoredBuiltDependencies:
+  - esbuild

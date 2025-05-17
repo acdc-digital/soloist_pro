@@ -1,0 +1,16 @@
+{
+  "name": "soloist_pro-convex",
+  "version": "0.1.0",
+  "description": "soloist_pro-convex",
+  "main": "index.js",
+  "scripts": {
+    "dev": "convex dev"
+  },
+  "keywords": [],
+  "author": "matthew simon",
+  "license": "GPL-3.0-or-later",
+  "packageManager": "pnpm@10.6.5",
+  "dependencies": {
+    "convex": "^1.24.1"
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "name": "soloist_pro-monorepo",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Soloist Pro Monorepo",
+  "main": "index.js",
+  "workspaces": [
+    "convex",
+    "electron",
+    "renderer"
+  ],
+  "scripts": {
+    "dev:convex": "pnpm --filter soloist_pro-convex dev",
+    "dev:electron": "pnpm --filter soloist_pro-electron dev",
+    "dev:renderer": "pnpm --filter soloist_pro-renderer dev",
+    "dev:website":  "pnpm --filter soloist_pro-website dev",
+    "lint": "trunk lint",
+    "typecheck": "tsc --build"
+  },
+  "devDependencies": {
+    "trunk": "^1.1.0"
+  },
+  "keywords": [],
+  "author": "matthew simon",
+  "license": "GPL-3.0-or-later",
+  "packageManager": "pnpm@10.6.5",
+  "dependencies": {
+    "convex": "^1.24.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/acdc-digital/soloist_pro.git"
+  },
+  "bugs": {
+    "url": "https://github.com/acdc-digital/soloist_pro/issues"
+  },
+  "homepage": "https://github.com/acdc-digital/soloist_pro#readme"
+}

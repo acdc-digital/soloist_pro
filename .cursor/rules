@@ -1,0 +1,370 @@
+---
+description: Comprehensive guide to Soloist's Prototype architecture, patterns, and development practices to accelerate rebuilding the application for Professional use.
+alwaysApply: true
+---
+@source module:convex
+@source file:convex/_generated/api.ts
+
+# Convex Guidelines
+
+## Function Patterns
+
+### Query and Mutation Functions
+```typescrip
+import { query, mutation } from "./_generated/server";
+import { v } from "convex/values";
+
+export const getItem = query({
+  args: {
+    id: v.optional(v.id("items")),
+    filter: v.optional(v.string()),
+  },
+  returns: v.union(v.null(), v.object({ /* object shape */ })),
+  handler: async (ctx, args) => {
+    // Implementation
+  },
+});
+
+export const updateItem = mutation({
+  args: {
+    id: v.id("items"),
+    data: v.object({
+      // Define shape with precise validators
+    }),
+  },
+  handler: async (ctx, args) => {
+    // Implementation with optimistic updates
+  },
+});
+```
+
+### Http Endpoints
+```typescrip
+import { httpRouter } from "convex/server";
+import { httpAction } from "./_generated/server";
+
+const http = httpRouter();
+
+http.route({
+  path: "/api/webhook",
+  method: "POST",
+  handler: httpAction(async (ctx, req) => {
+    // Implementation with proper error handling
+    return new Response(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" }
+    });
+  }),
+});
+
+export default http;
+```
+
+### Advanced Validators
+```typescrip
+// Complex nested validators
+const userProfileValidator = v.object({
+  name: v.string(),
+  preferences: v.object({
+    theme: v.union(v.literal("light"), v.literal("dark"), v.literal("system")),
+    notifications: v.boolean(),
+  }),
+  stats: v.optional(v.array(
+    v.object({
+      date: v.string(),
+      score: v.number(),
+    })
+  )),
+});
+
+// Pagination arguments pattern
+const paginationArgs = {
+  limit: v.optional(v.number()),
+  cursor: v.optional(v.string()),
+  sortBy: v.optional(v.union(v.literal("date"), v.literal("score"))),
+  order: v.optional(v.union(v.literal("asc"), v.literal("desc"))),
+};
+```
+
+### Schema Definition
+```typescrip
+import { defineSchema, defineTable } from "convex/server";
+import { v } from "convex/values";
+
+export default defineSchema({
+  logs: defineTable({
+    userId: v.string(),
+    date: v.string(),
+    content: v.string(),
+    score: v.number(),
+    tags: v.optional(v.array(v.string())),
+    metadata: v.optional(v.object({
+      mood: v.optional(v.string()),
+      energy: v.optional(v.number()),
+    })),
+  })
+  .index("by_user_date", ["userId", "date"])
+  .index("by_score", ["score"]),
+
+  forecasts: defineTable({
+    userId: v.string(),
+    startDate: v.string(),
+    endDate: v.string(),
+    predictions: v.array(v.object({
+      date: v.string(),
+      predictedScore: v.number(),
+      confidence: v.optional(v.number()),
+    })),
+    generatedAt: v.string(),
+  })
+  .index("by_user", ["userId"])
+  .index("by_date_range", ["startDate", "endDate"]),
+});
+```
+
+# Soloist Architecture
+
+## 1. Technology Stack
+| Layer | Technology | Best Practices |
+|-------|------------|----------------|
+| Framework | **Next.js 15** (App Router) | Server components for data fetching, client components for interactivity |
+| Database | **Convex** | Use optimistic updates, real-time subscriptions, and pagination patterns |
+| UI | **ShadCN** + **Tailwind CSS v4** | Use color scheme tokens, maintain spacing consistency with rem/em |
+| State | **Zustand v5** | Use slices for domain separation, persist important state |
+| AI | **OpenAI API** (via Convex actions) | Implement retry mechanisms, rate limiting, and error handling |
+| Animation | **Framer Motion** | Use layout animations for smooth transitions |
+| Testing | **Vitest** + **Playwright** | Unit test components, E2E test critical flows |
+
+## 2. Application Structure
+```
+renderer/
+├── src/
+│   ├── app/              # Next.js App Router
+│   │   ├── (auth)/       # Auth-required routes
+│   │   ├── api/          # API routes
+│   │   ├── _components/  # Shared components
+│   │   └── layout.tsx    # Root layou
+│   ├── components/       # Reusable UI components
+│   │   ├── ui/           # ShadCN components
+│   │   └── custom/       # App-specific components
+│   ├── hooks/            # Custom React hooks
+│   ├── lib/              # Utility functions
+│   ├── store/            # Zustand stores
+│   │   ├── userStore.ts  # User state
+│   │   ├── logsStore.ts  # Logs state
+│   │   └── uiStore.ts    # UI state
+│   └── types/            # TypeScript interfaces
+convex/
+├── _generated/          # Auto-generated files
+├── schema.ts            # Database schema
+├── logs.ts              # Log-related functions
+├── forecasts.ts         # Forecast-related functions
+├── users.ts             # User-related functions
+└── http.ts              # HTTP endpoints
+```
+
+## 3. Component Architecture
+
+### Component Patterns
+```tsx
+// Pattern for all new components
+import React from "react";
+import { cn } from "@/lib/utils";
+
+interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+  variant?: "default" | "outline" | "ghost";
+}
+
+export function Card({
+  title,
+  description,
+  children,
+  variant = "default",
+  className,
+  ...props
+}: CardProps) {
+  return (
+    <div
+      className={cn(
+        "rounded-lg p-4",
+        {
+          "bg-zinc-100 dark:bg-zinc-800": variant === "default",
+          "border border-zinc-200 dark:border-zinc-700": variant === "outline",
+          "bg-transparent": variant === "ghost"
+        },
+        className
+      )}
+      {...props}
+    >
+      <h3 className="text-lg font-medium">{title}</h3>
+      {description && <p className="text-sm text-zinc-500 dark:text-zinc-400">{description}</p>}
+      <div className="mt-2">
+        {children}
+      </div>
+    </div>
+  );
+}
+```
+
+### Layout Components
+- Use `react-resizable-panels` for all resizable layouts
+- Implement responsive behavior using Tailwind's breakpoint utilities
+- Use CSS Grid for complex layouts, Flexbox for simpler arrangements
+- Create Page components that implement consistent padding and max-width constraints
+
+## 4. Data Flow Architecture
+
+### Zustand Store Pattern
+```typescrip
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+
+interface LogsState {
+  logs: Log[];
+  selectedDate: string | null;
+  isLoading: boolean;
+  error: string | null;
+
+  // Actions
+  setSelectedDate: (date: string | null) => void;
+  addLog: (log: Log) => void;
+  updateLog: (id: string, data: Partial<Log>) => void;
+  deleteLog: (id: string) => void;
+}
+
+export const useLogsStore = create<LogsState>()(
+  persist(
+    (set) => ({
+      logs: [],
+      selectedDate: null,
+      isLoading: false,
+      error: null,
+
+      setSelectedDate: (date) => set({ selectedDate: date }),
+      addLog: (log) => set((state) => ({ logs: [...state.logs, log] })),
+      updateLog: (id, data) => set((state) => ({
+        logs: state.logs.map(log => log.id === id ? { ...log, ...data } : log)
+      })),
+      deleteLog: (id) => set((state) => ({
+        logs: state.logs.filter(log => log.id !== id)
+      })),
+    }),
+    { name: "logs-storage" }
+  )
+);
+```
+
+### Convex Integration Pattern
+```tsx
+// In your React components
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+
+export function LogsList() {
+  const logs = useQuery(api.logs.getAll);
+  const addLog = useMutation(api.logs.create);
+
+  // Implementation with error handling and loading states
+}
+```
+
+## 5. UI/UX Guidelines
+
+### Color Palette
+- Base: Zinc for neutral colors
+- Primary: Indigo for primary actions and focus states
+- Success: Emerald for positive indicators
+- Warning: Amber for warnings
+- Danger: Rose for errors and destructive actions
+- Use color tokens via Tailwind classes (e.g., `bg-primary` instead of `bg-indigo-600`)
+
+### Spacing System
+- Use Tailwind's spacing scale consistently
+- Extra small (xs): 0.25rem (4px)
+- Small (sm): 0.5rem (8px)
+- Medium (md): 1rem (16px)
+- Large (lg): 1.5rem (24px)
+- Extra large (xl): 2rem (32px)
+- 2xl: 3rem (48px)
+
+### Animation Guidelines
+- Use subtle animations for state changes (hover, focus)
+- Implement skeleton loaders for asynchronous conten
+- Keep animations under 300ms for UI interactions
+- Use Framer Motion's layout animations for list changes
+
+## 6. Performance Optimization
+
+### Rendering Optimization
+- Use `React.memo` for expensive components
+- Implement virtualization for long lists using `react-virtual` or similar
+- Separate reads/writes to avoid layout thrashing
+- Use web workers for heavy computations
+
+### Data Fetching
+- Implement pagination for large datasets
+- Use Convex's real-time subscriptions efficiently
+- Cache results locally when appropriate
+- Implement optimistic updates for mutation operations
+
+### Asset Optimization
+- Use `next/image` for all images
+- Lazy load below-the-fold conten
+- Implement code splitting with dynamic imports
+- Use SVG for icons where possible
+
+## 7. Testing Strategy
+
+### Component Testing
+```typescrip
+import { render, screen } from '@testing-library/react';
+import { LogCard } from './LogCard';
+
+test('renders log information correctly', () => {
+  render(
+    <LogCard
+      log={{
+        id: '123',
+        date: '2023-10-20',
+        content: 'Test log',
+        score: 85
+      }}
+    />
+  );
+
+  expect(screen.getByText('Test log')).toBeInTheDocument();
+  expect(screen.getByText('85')).toBeInTheDocument();
+});
+```
+
+### End-to-End Testing
+```typescrip
+test('user can create a new log', async ({ page }) => {
+  await page.goto('/logs');
+  await page.click('button:has-text("New Log")');
+  await page.fill('[data-testid="log-content"]', 'My new log entry');
+  await page.click('button:has-text("Save")');
+
+  // Verify the log appears in the lis
+  await expect(page.locator('text=My new log entry')).toBeVisible();
+});
+```
+
+## 8. Deployment and CI/CD
+
+### Build Pipeline
+- Use GitHub Actions for CI/CD
+- Implement lint and type checking in the pipeline
+- Run tests before deploymen
+- Use staging environments for verification
+
+### Performance Monitoring
+- Implement analytics for core user journeys
+- Monitor and log errors with proper contex
+- Track performance metrics (FCP, LCP, TTI)
+- Implement feature flags for gradual rollouts
+
+---
