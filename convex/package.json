@@ -11,6 +11,11 @@
   "license": "GPL-3.0-or-later",
   "packageManager": "pnpm@10.6.5",
   "dependencies": {
-    "convex": "^1.24.1"
+    "@auth/core": "^0.39.1",
+    "@clerk/clerk-react": "^5.31.4",
+    "@clerk/nextjs": "^6.19.4",
+    "@convex-dev/auth": "^0.0.86",
+    "convex": "^1.24.1",
+    "convex-helpers": "^0.1.86"
   }
 }

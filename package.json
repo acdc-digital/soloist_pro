@@ -13,7 +13,7 @@
     "dev:convex": "pnpm --filter soloist_pro-convex dev",
     "dev:electron": "pnpm --filter soloist_pro-electron dev",
     "dev:renderer": "pnpm --filter soloist_pro-renderer dev",
-    "dev:website":  "pnpm --filter soloist_pro-website dev",
+    "dev:website": "pnpm --filter soloist_pro-website dev",
     "lint": "trunk lint",
     "typecheck": "tsc --build"
   },
@@ -25,7 +25,8 @@
   "license": "GPL-3.0-or-later",
   "packageManager": "pnpm@10.6.5",
   "dependencies": {
-    "convex": "^1.24.1"
+    "convex": "^1.24.1",
+    "convex-helpers": "^0.1.86"
   },
   "repository": {
     "type": "git",

@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/Theme/theme-provider";
+import { ConvexClientProvider } from "@/providers/ConvexClientProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -44,7 +45,7 @@ export default function RootLayout({
             __html: `
               // Handle Stripe locale module loading errors
               window.addEventListener('error', function(event) {
-                if (event.message && event.message.includes('Cannot find module \\\'./en\\\'')) {
+                if (event.message && event.message.includes('Cannot find module \\\\'./en\\\\\'')) {
                   console.warn('Stripe locale error intercepted');
                   window.Stripe = window.Stripe || {};
                   window.Stripe._locale = window.Stripe._locale || {};
@@ -57,14 +58,18 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className}>
+      <ConvexClientProvider>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <ConvexClientProvider>
+            {children}
+          </ConvexClientProvider>
         </ThemeProvider>
+        </ConvexClientProvider>
       </body>
     </html>
   );

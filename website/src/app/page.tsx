@@ -48,7 +48,7 @@ const AccordionItem = ({ question, children }: AccordionItemProps) => {
 
   return (
     <div className="border rounded-lg p-2 bg-white dark:bg-zinc-800 dark:border-zinc-700 mb-4">
-      <button 
+      <button
         className="flex justify-between items-center w-full text-left font-medium px-4 py-3 dark:text-white"
         onClick={toggleOpen}
       >
@@ -93,9 +93,9 @@ export default function LandingPage() {
               </div>
               {/* Feature8 image - temporarily disabled
               <div className="mt-18">
-                <img 
-                  src="/Feature8.png" 
-                  alt="Daily Well-Being Dashboard" 
+                <img
+                  src="/Feature8.png"
+                  alt="Daily Well-Being Dashboard"
                   className="w-full h-auto object-contain"
                   loading="lazy"
                   width={1024}
@@ -106,9 +106,9 @@ export default function LandingPage() {
             </div>
             <div className="md:w-1/2 aspect-video w-full">
               <div className="h-full w-full flex items-center justify-center text-gray-400">
-                <img 
-                  src="/Feature1.png" 
-                  alt="Feature 1 Screenshot" 
+                <img
+                  src="/Feature1.png"
+                  alt="Feature 1 Screenshot"
                   className="w-[85%] h-auto object-contain rounded-lg shadow-lg hover:shadow-xl transition-shadow"
                   loading="lazy"
                   width={1024}
@@ -117,7 +117,7 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
-          
+
           {/* Feature 2 & 3 (Side by side) */}
           <div className="grid md:grid-cols-2 gap-8">
             {/* Feature 2 */}
@@ -131,9 +131,9 @@ export default function LandingPage() {
               </div>
               <div className="aspect-video w-full">
                 <div className="h-full w-full flex items-center justify-left text-gray-400">
-                  <img 
-                    src="/Feature3.png" 
-                    alt="Feature 2 Screenshot" 
+                  <img
+                    src="/Feature3.png"
+                    alt="Feature 2 Screenshot"
                     className="w-[95%] h-auto object-contain rounded-lg shadow-lg hover:shadow-xl transition-shadow"
                     loading="lazy"
                     width={1024}
@@ -142,7 +142,7 @@ export default function LandingPage() {
                 </div>
               </div>
             </div>
-            
+
             {/* Feature 3 */}
             <div className="space-y-4">
               <h3 className="text-2xl font-bold dark:text-white">See the Patterns. Shape the Progress.</h3>
@@ -154,9 +154,9 @@ export default function LandingPage() {
               </div>
               <div className="aspect-video w-full">
                 <div className="h-full w-full flex items-center justify-center text-gray-400">
-                  <img 
-                    src="/Feature6.png" 
-                    alt="Feature 3 Screenshot" 
+                  <img
+                    src="/Feature6.png"
+                    alt="Feature 3 Screenshot"
                     className="w-[90%] h-auto object-contain rounded-lg transition-shadow"
                     loading="lazy"
                     width={1024}
@@ -175,7 +175,7 @@ export default function LandingPage() {
         <section id="faq" className="py-16 bg-gray-50 dark:bg-zinc-900 dark:border-zinc-800">
           <div className="container mx-auto px-4">
             <h2 className="text-3xl font-bold text-center mb-16 dark:text-white">FAQ Section</h2>
-            
+
             <div className="max-w-3xl mx-auto">
               <AccordionItem question="Is it free to start?">
                 Use collapsible questions to address common concerns without overwhelming the page.
@@ -220,7 +220,7 @@ export default function LandingPage() {
             <p className="text-sm text-gray-500 dark:text-gray-400">
               © 2025 Company Name. All Rights Reserved.
             </p>
-            
+
             <div className="flex space-x-6 mt-4 md:mt-0">
               <a href="#" className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
                 LinkedIn

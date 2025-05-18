@@ -309,15 +309,6 @@ export default function Pricing({ canceled = false }: PricingProps) {
           </div>
         </div>
         
-        {/* Environment Notice (Development Only) */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mt-6 max-w-xl mx-auto">
-            <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded-lg text-sm">
-              Development Mode: Using redirect checkout to avoid 400 errors with payment confirmations.
-            </div>
-          </div>
-        )}
-        
         {/* Error Message */}
         {errorMessage && (
           <div className="mt-8 max-w-xl mx-auto">
