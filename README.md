@@ -29,6 +29,9 @@ Soloist application professional development repository.
 4. git push origin main vx.x.x
 5. (optional) git reset --hard vx.x.x
 
+**Version History**
+v0.1.0 - Setup Initial Scaffolding
+
 ### Feature Development Instructions:
 1. git checkout -b new-branch
 2. git add .

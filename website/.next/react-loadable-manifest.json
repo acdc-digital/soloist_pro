@@ -1,1 +1,6 @@
-{}
+{
+  "components/StripeCheckout.tsx -> react-dom/client": {
+    "id": "components/StripeCheckout.tsx -> react-dom/client",
+    "files": []
+  }
+}

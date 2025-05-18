@@ -1,1 +1,1 @@
-self.__REACT_LOADABLE_MANIFEST="{}"
+self.__REACT_LOADABLE_MANIFEST="{\"components/StripeCheckout.tsx -> react-dom/client\":{\"id\":\"components/StripeCheckout.tsx -> react-dom/client\",\"files\":[]}}"
