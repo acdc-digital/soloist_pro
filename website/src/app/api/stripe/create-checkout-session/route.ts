@@ -2,117 +2,110 @@
 // /Users/matthewsimon/Documents/Github/soloist_pro/website/src/app/api/stripe/create-checkout-session/route.ts
 
 import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../../../../../convex/_generated/api';
 
-// Initialize Stripe with your secret key
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2025-04-30.basil', // Use the latest API version
-});
+// Whether to use mock responses for testing
+const USE_MOCK_CHECKOUT = false; // Set to false to use real Stripe
+
+// Create a Convex client for the API route
+const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+const convex = new ConvexHttpClient(convexUrl || '');
 
 export async function POST(request: Request) {
   try {
-    // Check if Stripe API key is set
-    if (!process.env.STRIPE_SECRET_KEY) {
-      return NextResponse.json(
-        { message: 'Stripe API key is not set' },
-        { status: 500 }
-      );
-    }
+    console.log("CONVEX URL:", convexUrl);
     
-    const { priceId, successUrl, cancelUrl, customerEmail, metadata } = await request.json();
-
-    // Validate required parameters
+    const body = await request.json();
+    const { priceId, successUrl, cancelUrl, customerEmail, metadata = {} } = body;
+    
+    console.log("Request body:", { priceId, successUrl, customerEmail: customerEmail || 'none', hasMetadata: !!metadata });
+    
     if (!priceId) {
-      return NextResponse.json(
-        { message: 'Price ID is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Missing required parameter: priceId' }, { status: 400 });
     }
-
-    // Get origin for return URL
-    const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || '';
     
-    // If no explicit successUrl is provided, create one with the session ID
-    const defaultSuccessUrl = `${origin}/thank-you?success=true&session_id={CHECKOUT_SESSION_ID}`;
-    const defaultCancelUrl = `${origin}/pricing?canceled=true`;
-
-    // Create checkout session options
-    const sessionOptions: Stripe.Checkout.SessionCreateParams = {
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
-      mode: 'subscription',
-      success_url: successUrl || defaultSuccessUrl,
-      cancel_url: cancelUrl || defaultCancelUrl,
-      // We don't need to allow iframe embedding anymore since we're redirecting
-      allow_promotion_codes: true,
-      billing_address_collection: 'auto',
-      locale: 'en', // Force English locale to avoid module loading issues
-    };
-
-    // Add customer email if provided
-    if (customerEmail) {
-      sessionOptions.customer_email = customerEmail;
+    if (!convexUrl) {
+      return NextResponse.json({ error: 'Missing NEXT_PUBLIC_CONVEX_URL environment variable' }, { status: 500 });
     }
-
-    // Add metadata if provided
-    if (metadata && Object.keys(metadata).length > 0) {
-      sessionOptions.metadata = {
-        ...metadata,
-        origin: origin,
-        environment: process.env.NODE_ENV || 'unknown'
-      };
-    } else {
-      sessionOptions.metadata = {
-        origin: origin,
-        environment: process.env.NODE_ENV || 'unknown'
-      };
+    
+    // For testing, use a mock response
+    if (USE_MOCK_CHECKOUT) {
+      console.log("Using mock checkout session");
+      const mockId = Date.now().toString();
+      
+      // Record the mock payment in the database
+      try {
+        await convex.mutation(api.payments.storeMockPayment, {
+          userId: metadata?.userId,
+          amount: 1999, // $19.99
+          currency: "usd",
+          paymentId: mockId,
+          planType: metadata?.planType || "pro",
+          email: customerEmail || 'mock@example.com' // Provide a fallback email
+        });
+      } catch (err) {
+        console.warn("Failed to record mock payment:", err);
+        // Continue anyway - mock payment recording is optional
+      }
+      
+      return NextResponse.json({
+        sessionId: "mock_session_" + mockId,
+        sessionUrl: "https://checkout.stripe.com/mock-checkout-redirect",
+        paymentId: "mock_payment_id_" + mockId
+      });
     }
-
-    console.log('Creating checkout session with options:', {
-      priceId,
-      success_url: sessionOptions.success_url,
-      cancel_url: sessionOptions.cancel_url,
-      mode: sessionOptions.mode,
-      locale: sessionOptions.locale
-    });
-
-    // Create the checkout session
-    const session = await stripe.checkout.sessions.create(sessionOptions);
-    console.log('Checkout session created:', session.id);
-
-    // Return the session ID and URL
-    return NextResponse.json({ 
-      sessionId: session.id,
-      sessionUrl: session.url 
-    });
-  } catch (error) {
+    
+    // Real Convex integration for production
+    try {
+      // Ensure the customerEmail is not an empty string
+      const emailToUse = customerEmail && customerEmail.trim() ? customerEmail : undefined;
+      
+      // Call Convex action to create a checkout session
+      const checkoutData = await convex.action(api.stripe.createCheckoutSession, {
+        priceId, 
+        successUrl, 
+        cancelUrl, 
+        customerEmail: emailToUse,
+        metadata,
+        userId: metadata?.userId
+      });
+      
+      // Return the session URL and ID
+      return NextResponse.json({
+        sessionId: checkoutData.sessionId,
+        sessionUrl: checkoutData.sessionUrl,
+        paymentId: checkoutData.paymentId
+      });
+    } catch (convexError: any) {
+      console.error("Convex checkout session error:", convexError);
+      
+      // If the Stripe keys are missing or invalid, let's tell the user
+      if (convexError.message?.includes("Invalid API Key")) {
+        return NextResponse.json({ 
+          error: "Stripe API key is invalid or missing. Please update your Stripe configuration.", 
+          isStripeKeyError: true 
+        }, { status: 500 });
+      }
+      
+      // Handle email validation errors
+      if (convexError.message?.includes("Invalid email address")) {
+        return NextResponse.json({ 
+          error: "Invalid email address provided. Please provide a valid email or leave it blank.", 
+          isEmailError: true 
+        }, { status: 400 });
+      }
+      
+      throw convexError;
+    }
+  } catch (error: any) {
     console.error('Error creating checkout session:', error);
     
-    // Try to extract more details from Stripe errors
-    let errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred creating checkout session';
-    let errorDetails = {};
-    
-    if (error instanceof Stripe.errors.StripeError) {
-      errorDetails = {
-        type: error.type,
-        code: error.code,
-        param: error.param,
-        message: error.message
-      };
-      console.error('Stripe error details:', errorDetails);
-    }
-    
-    return NextResponse.json(
-      { 
-        message: errorMessage, 
-        details: errorDetails
-      },
-      { status: 500 }
-    );
+    // Return a more detailed error
+    return NextResponse.json({ 
+      error: error.message || 'Failed to create checkout session',
+      stack: error.stack,
+      convexUrl: convexUrl || 'not set'
+    }, { status: 500 });
   }
 } 

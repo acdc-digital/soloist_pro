@@ -2,108 +2,108 @@
 // /Users/matthewsimon/Documents/Github/soloist_pro/website/src/app/api/stripe/create-payment-intent/route.ts
 
 import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../../../../../convex/_generated/api';
 
-// Initialize Stripe with your secret key
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2025-04-30.basil', // Use the latest API version
-});
+// Whether to use mock responses for testing
+const USE_MOCK_CHECKOUT = false; // Set to false to use real Stripe
+
+// Create a Convex client for the API route
+const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+const convex = new ConvexHttpClient(convexUrl || '');
 
 export async function POST(request: Request) {
   try {
-    // Check if Stripe API key is set
-    if (!process.env.STRIPE_SECRET_KEY) {
-      return NextResponse.json(
-        { message: 'Stripe API key is not set' },
-        { status: 500 }
-      );
-    }
-
-    const { priceId, customerEmail, metadata } = await request.json();
-
-    // Validate required parameters
-    if (!priceId) {
-      return NextResponse.json(
-        { message: 'Price ID is required' },
-        { status: 400 }
-      );
-    }
-
-    // Get origin for metadata
-    const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || '';
-    const isSecure = origin.startsWith('https://') || process.env.NODE_ENV === 'development';
-    const protocol = typeof window !== 'undefined' ? window.location.protocol : 'unknown';
-
-    console.log('Creating payment intent:', {
-      priceId,
-      environment: process.env.NODE_ENV,
-      isSecure,
-      origin,
-      customerEmail: customerEmail || 'not provided'
-    });
-
-    // Retrieve the price information from Stripe
-    const price = await stripe.prices.retrieve(priceId);
+    console.log("CONVEX URL:", convexUrl);
     
-    // Get the product details
-    const product = await stripe.products.retrieve(price.product as string);
-
-    // Create payment intent parameters
-    const paymentIntentParams: Stripe.PaymentIntentCreateParams = {
-      amount: price.unit_amount || 0,
-      currency: price.currency || 'usd',
-      description: `Subscription to ${product.name}`,
-      automatic_payment_methods: {
-        enabled: true,
-      },
-      metadata: {
-        price_id: priceId,
-        product_id: price.product as string,
-        origin,
-        environment: process.env.NODE_ENV || 'unknown',
-        ...metadata
-      }
-    };
-
-    // Add customer email if provided
-    if (customerEmail) {
-      paymentIntentParams.receipt_email = customerEmail;
+    const body = await request.json();
+    const { priceId, customerEmail, metadata = {} } = body;
+    
+    console.log("Request body:", { priceId, customerEmail: customerEmail || 'none', hasMetadata: !!metadata });
+    
+    if (!priceId) {
+      return NextResponse.json({ error: 'Missing required parameter: priceId' }, { status: 400 });
     }
-
-    // Create the payment intent
-    console.log('PaymentIntent params:', JSON.stringify(paymentIntentParams, null, 2));
-    const paymentIntent = await stripe.paymentIntents.create(paymentIntentParams);
-    console.log('PaymentIntent created:', paymentIntent.id);
-
-    // Return the payment intent client secret
-    return NextResponse.json({ 
-      clientSecret: paymentIntent.client_secret,
-      id: paymentIntent.id
-    });
-  } catch (error) {
+    
+    if (!convexUrl) {
+      return NextResponse.json({ error: 'Missing NEXT_PUBLIC_CONVEX_URL environment variable' }, { status: 500 });
+    }
+    
+    // For testing, use a mock response
+    if (USE_MOCK_CHECKOUT) {
+      console.log("Using mock payment intent");
+      const mockId = Date.now().toString();
+      
+      // Record the mock payment in the database
+      try {
+        await convex.mutation(api.payments.storeMockPayment, {
+          userId: metadata?.userId,
+          amount: 1999, // $19.99
+          currency: "usd",
+          paymentId: mockId,
+          planType: metadata?.planType || "pro",
+          email: customerEmail || 'mock@example.com' // Provide a fallback email
+        });
+      } catch (err) {
+        console.warn("Failed to record mock payment:", err);
+        // Continue anyway - mock payment recording is optional
+      }
+      
+      return NextResponse.json({
+        clientSecret: "mock_client_secret_for_testing_" + mockId,
+        id: "mock_payment_intent_" + mockId,
+        paymentId: "mock_payment_id_" + mockId
+      });
+    }
+    
+    // Real Convex integration for production
+    try {
+      // Ensure the customerEmail is not an empty string
+      const emailToUse = customerEmail && customerEmail.trim() ? customerEmail : undefined;
+      
+      // Call Convex action to create a payment intent
+      const paymentData = await convex.action(api.stripe.createPaymentIntent, {
+        priceId,
+        customerEmail: emailToUse,
+        metadata,
+        userId: metadata?.userId
+      });
+      
+      // Return the client secret needed for Stripe Elements
+      return NextResponse.json({
+        clientSecret: paymentData.clientSecret,
+        id: paymentData.id,
+        paymentId: paymentData.paymentId
+      });
+    } catch (convexError: any) {
+      console.error("Convex payment intent error:", convexError);
+      
+      // If the Stripe keys are missing or invalid, let's tell the user
+      if (convexError.message?.includes("Invalid API Key")) {
+        return NextResponse.json({ 
+          error: "Stripe API key is invalid or missing. Please update your Stripe configuration.", 
+          isStripeKeyError: true 
+        }, { status: 500 });
+      }
+      
+      // Handle email validation errors
+      if (convexError.message?.includes("Invalid email address")) {
+        return NextResponse.json({ 
+          error: "Invalid email address provided. Please provide a valid email or leave it blank.", 
+          isEmailError: true 
+        }, { status: 400 });
+      }
+      
+      throw convexError;
+    }
+  } catch (error: any) {
     console.error('Error creating payment intent:', error);
     
-    // Try to extract more details from Stripe errors
-    let errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred creating payment intent';
-    let errorDetails = {};
-    
-    if (error instanceof Stripe.errors.StripeError) {
-      errorDetails = {
-        type: error.type,
-        code: error.code,
-        param: error.param,
-        // Stripe error message
-        message: error.message
-      };
-      console.error('Stripe error details:', errorDetails);
-    }
-    
-    return NextResponse.json(
-      { 
-        message: errorMessage, 
-        details: errorDetails 
-      },
-      { status: 500 }
-    );
+    // Return a more detailed error
+    return NextResponse.json({ 
+      error: error.message || 'Failed to create payment intent',
+      stack: error.stack,
+      convexUrl: convexUrl || 'not set'
+    }, { status: 500 });
   }
 } 

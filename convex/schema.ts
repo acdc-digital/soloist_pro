@@ -15,6 +15,29 @@ export default defineSchema({
   .index("by_token", ["tokenIdentifier"])
   .index("email", ["email"]),
   
+  payments: defineTable({
+    userId: v.optional(v.string()),
+    amount: v.number(),
+    currency: v.string(),
+    status: v.string(), // "pending", "completed", "failed"
+    stripeId: v.optional(v.string()),
+    stripeSessionId: v.optional(v.string()),
+    metadata: v.optional(v.object({
+      planType: v.optional(v.string()),
+      duration: v.optional(v.string()),
+      features: v.optional(v.array(v.string())),
+      date: v.optional(v.string()),
+      plan: v.optional(v.string()),
+      priceId: v.optional(v.string()),
+      user_interface: v.optional(v.string())
+    })),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+  .index("by_user", ["userId"])
+  .index("by_status", ["status"])
+  .index("by_stripeId", ["stripeId"]),
+  
   logs: defineTable({
     userId: v.string(),
     date: v.string(),
